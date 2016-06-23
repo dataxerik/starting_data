@@ -2,31 +2,35 @@ from __future__ import division
 import math
 import matplotlib.pyplot as plt
 
+
 def normal_pdf(x, mu=0, sigma=1):
     sqrt_two_pi = math.sqrt(2 * math.pi)
-    return (math.exp(-(x-mu) ** 2 / 2/ sigma ** 2) / (sqrt_two_pi * sigma))
+    return (math.exp(-(x - mu) ** 2 / 2 / sigma ** 2) / (sqrt_two_pi * sigma))
+
 
 def normal_cdf(x, mu=0, sigma=1):
     return (1 + math.erf((x - mu) / math.sqrt(2) / sigma)) / 2
 
-def inverse_normal_cdf(p, mu=0, signma=1, tolerance=0.00001):
-    #if not a standard, compute standard and re-scale
-    if mu != 0 or signma != 1:
+
+def inverse_normal_cdf(p, mu=0, sigma=1, tolerance=0.00001):
+    # if not a standard, compute standard and re-scale
+    if mu != 0 or sigma != 1:
         return mu + sigma * inverse_normal_cdf(p, tolerance=tolerance)
 
     low_z, low_p = -10.0, 0
     hi_z, hi_p = 10.0, 1
     while hi_z - low_z > tolerance:
-        mid_z = (low_z + hi_z) / 2 #midpoint
-        mid_p = normal_cdf(mid_z) #and the cdf value there
+        mid_z = (low_z + hi_z) / 2  # midpoint
+        mid_p = normal_cdf(mid_z)  # and the cdf value there
         if mid_p < p:
-            #midpoint is still to low, search above it
+            # midpoint is still to low, search above it
             low_z, low_p = mid_z, mid_p
         elif mid_p > p:
             hi_z, hi_p = mid_z, mid_p
         else:
             break
     return mid_z
+
 
 def main():
     '''
@@ -47,5 +51,6 @@ def main():
     plt.title("Various Normal cdfs")
     plt.show()'''
     print(inverse_normal_cdf(900))
+
 
 if __name__ == "__main__": main()

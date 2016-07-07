@@ -2,8 +2,10 @@ import math
 import random
 import csv
 import dateutil.parser
+import datetime
+
 import matplotlib.pyplot as plt
-from collections import Counter
+from collections import Counter, defaultdict
 from normal_distribution import inverse_normal_cdf
 from linear_algebra import shape, get_column, make_matrix
 from statistics import correlation
@@ -44,7 +46,7 @@ def random_normal():
     """returns a random draw from a standard normal distribution"""
     return inverse_normal_cdf(random.random())
 
-
+'''
 xs = [random_normal() for _ in range(1000)]
 ys1 = [x + random_normal() / 2 for x in xs]
 ys2 = [-x + random_normal() / 2 for x in xs]
@@ -59,7 +61,7 @@ plt.show()
 
 print("correlation of xs and ys1 {} and correlation of xs and ys2 {}".format(correlation(xs, ys1),
                                                                              correlation(xs, ys2)))
-
+'''
 
 def correlation_matrix(data):
     """returns the num_columns x num_columns matrix whose (i,j)th entry
@@ -113,6 +115,7 @@ def visual_approach():
 
     plt.show()
 
+
 # visual_approach()
 
 def parse_row(input_row, parsers):
@@ -124,6 +127,7 @@ def parse_row(input_row, parsers):
 
 def parse_rows_with(reader, parsers):
     """wrap a reader to apply the parers to each of its rows"""
+    #print(reader)
     for row in reader:
         yield parse_row(row, parsers)
 
@@ -131,16 +135,19 @@ def parse_rows_with(reader, parsers):
 def try_or_none(f):
     """Wrap f to return None if f raises an exception
     assumes f takes only one input"""
+
     def f_or_none(x):
-        try: return(x)
-        except: return None
+        try:
+            return (x)
+        except:
+            return None
 
     return f_or_none
 
 
 def try_parse_field(field_name, value, parser_dict):
     """try to parse value using the appropriate function from parser_dic"""
-    parser = parser_dict.get(field_name) #None if no such entry
+    parser = parser_dict.get(field_name)  # None if no such entry
     if parser is not None:
         return try_or_none(parser)(value)
     else:
@@ -148,17 +155,62 @@ def try_parse_field(field_name, value, parser_dict):
 
 
 def parse_dict(input_dict, parser_dict):
-    return { field_name : try_parse_field(field_name, value, parser_dict)
-             for field_name, value in input_dict.iteritems() }
+    return {field_name: try_parse_field(field_name, value, parser_dict)
+            for field_name, value in input_dict.iteritems()}
 
-if __name__ == "__main__" :
+
+def picker(field_name):
+    """returns a function that picks a field out of a dict"""
+    return lambda row: row[field_name]
+
+
+def pluck(field_name, rows):
+    """turn a list of dicts into the list of field_name values"""
+    return map(picker(field_name), rows)
+
+
+def group_by(grouper, rows, value_transform=None):
+    # key is output of grouper, value is list of rows
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[grouper(row)].append(row)
+    if value_transform is None:
+        return grouped
+    else:
+        return {key: value_transform(rows)
+                for key, rows in grouped.items()}
+
+
+if __name__ == "__main__":
     data = []
-    with open("comma_delimited_stock_prices.csv", "r") as f:
-        reader = csv.reader(f)
-        for line in parse_rows_with(reader, [dateutil.parser.parse, None, float]):
-            data.append(line)
-
+    with open("stock.txt", "r") as f:
+        reader = csv.reader(f, delimiter='\t')
+        #print(reader)
+        for line in parse_rows_with(reader, [None, dateutil.parser.parse, float]):
+            print(line)
+            data.append({'symbol': line[0], 'date': line[1], 'closing_price': line[2]})
+    """
     for row in data:
         if any(x is None for x in row):
-            print(row)
-    print(data)
+            print(row)"""
+    re_data = pluck("symbol", data)
+    print(list(re_data))
+    #data = [{' closing_price': 102.06, 'date': datetime.datetime(2014, 8, 29, 0, 0), 'symbol': 'AAPL'}]
+
+    max_appl_price = max(row['closing_price']
+                         for row in data
+                         if row['symbol'] == "AAPL")
+
+    by_symbol = defaultdict(list)
+    for row in data:
+        by_symbol[row['symbol']].append(row)
+
+    max_price_by_symbol = {symbol : max(row['closing_price'] for row in grouped_rows)
+                           for symbol, grouped_rows in by_symbol.items()}
+    print(max_price_by_symbol)
+
+    max_price_by_symbol = group_by(picker('symbol'),
+                                   data,
+                                   lambda rows: max(pluck("closing_price", rows)))
+
+    print(max_price_by_symbol)

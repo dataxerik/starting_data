@@ -91,7 +91,7 @@ def minimize_batch(target_fn, gradient_fn, theta_0, tolerance=0.000001):
             break
         else:
             theta, value = next_theta, next_value
-    print(theta)
+    return theta
 
 
 def negate(f):

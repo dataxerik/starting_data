@@ -1,8 +1,10 @@
+from __future__ import division
 import math
 import random
 import matplotlib.pyplot as plt
 from collections import Counter
 from linear_algebra import sum_of_squares, dot, shape, get_column, get_row, make_matrix
+
 
 def mean(x):
     return sum(x) / len(x)

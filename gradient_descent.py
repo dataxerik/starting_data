@@ -2,7 +2,7 @@ import random
 import matplotlib.pyplot as plt
 from functools import partial
 from linear_algebra import distance
-from linear_algebra import vector_subtract
+from linear_algebra import vector_subtract, scalar_multiply
 
 
 def sum_of_squares(v):
@@ -121,10 +121,10 @@ def in_random_order(data):
 
 
 def minimize_stochastic(target_fn, gradient_fn, x, y, theta_0, alpha_0=0.01):
-    data = zip(x, y)
+    data = list(zip(x, y))
     theta = theta_0
     alpha = alpha_0
-    min_theta, min_value = None, float("info")  # the minimu so far
+    min_theta, min_value = None, float("inf")  # the minimum so far
     iterations_with_no_improvement = 0
 
     # if we ever go 100 iterations with no improvement, stop
@@ -145,7 +145,7 @@ def minimize_stochastic(target_fn, gradient_fn, x, y, theta_0, alpha_0=0.01):
         # and take a gradient step for each of the data points
         for x_i, y_i in in_random_order(data):
             gradient_i = gradient_fn(x_i, y_i, theta)
-            theta = vector_subtract(alpha, gradient_i)
+            theta = vector_subtract(theta, scalar_multiply(alpha, gradient_i))
     return min_theta
 
 

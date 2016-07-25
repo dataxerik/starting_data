@@ -3,9 +3,9 @@ import random
 
 def split_data(data, prob):
     """split data in fractions [prob, 1-prob]"""
-    results = [], []
+    result = [], []
     for row in data:
-        result = [0 if random.random() < prob else 1].append(row)
+        result[0 if random.random() < prob else 1].append(row)
     return result
 
 

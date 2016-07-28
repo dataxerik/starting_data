@@ -2,6 +2,8 @@ import random
 from linear_algebra import dot
 from gradient_descent import minimize_stochastic
 from linear_regression import total_sum_of_squares
+from statistics import median, standard_deviation
+from normal_distribution import normal_cdf
 
 
 def predict(x_i, beta):
@@ -50,6 +52,21 @@ def bootstrap_statistics(data, stats_fn, num_samples):
             for _ in range(num_samples)]
 
 
+def estimate_sample_beta(sample):
+    """sample is a list of pairs(x_i, y_i)"""
+    x_sample, y_sample, = list(zip(*sample))
+    return estimate_beta(x_sample, y_sample)
+
+
+def p_value(beta_hat_j, sigma_hat_j):
+    if beta_hat_j > 0:
+        # if the coefficient is positive, we need to compute twice the
+        # probability of seeing an even *larger* value
+        return 2 * (1 - normal_cdf(beta_hat_j / sigma_hat_j))
+    else:
+        #otherwise twice the probability of seeing a *smaller* value
+        return 2 * normal_cdf(beta_hat_j / sigma_hat_j)
+
 x = [[1, 49, 4, 0], [1, 41, 9, 0], [1, 40, 8, 0], [1, 25, 6, 0], [1, 21, 1, 0], [1, 21, 0, 0], [1, 19, 3, 0],
      [1, 19, 0, 0], [1, 18, 9, 0], [1, 18, 8, 0], [1, 16, 4, 0], [1, 15, 3, 0], [1, 15, 0, 0], [1, 15, 2, 0],
      [1, 15, 7, 0], [1, 14, 0, 0], [1, 14, 1, 0], [1, 13, 1, 0], [1, 13, 7, 0], [1, 13, 4, 0], [1, 13, 2, 0],
@@ -93,5 +110,33 @@ daily_minutes_good = [68.77, 51.25, 52.08, 38.36, 44.54, 57.13, 51.4, 41.42, 31.
                       23.48, 8.38, 27.81, 32.35, 23.84]
 
 random.seed(0)
-beta = estimate_beta(x, daily_minutes_good)
-print(beta)
+#beta = estimate_beta(x, daily_minutes_good)
+#print(beta)
+
+
+close_to_100 = [99.5 + random.random() for _ in range(101)]
+far_from_100 = ([99.5 + random.random()] +
+                [random.random() for _ in range(50)]+
+                [200 + random.random() for _ in range(50)])
+
+print(len(close_to_100))
+print(len(far_from_100))
+
+print(bootstrap_statistics(close_to_100, median, 100))
+print(bootstrap_statistics(far_from_100, median, 100))
+
+
+random.seed(0)
+boostrap_betas = bootstrap_statistics(list(zip(x, daily_minutes_good)),
+                                      estimate_sample_beta,
+                                      100)
+
+print(boostrap_betas)
+
+bootstrap_standard_errors = [
+    standard_deviation([beta[i] for beta in boostrap_betas])
+    for i in range(4)]
+
+print(bootstrap_standard_errors)
+
+print("end")

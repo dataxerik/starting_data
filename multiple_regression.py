@@ -1,6 +1,7 @@
 import random
 from linear_algebra import dot
 from gradient_descent import minimize_stochastic
+from linear_regression import total_sum_of_squares
 
 
 def predict(x_i, beta):
@@ -30,6 +31,23 @@ def estimate_beta(x, y):
                                x, y,
                                beta_initial,
                                0.001)
+
+def multiple_r_squared(x, y, beta):
+    sum_of_squared_erros = sum(error(x_i, y_i, beta) ** 2
+                                for x_i, y_i in zip(x, y))
+
+    return 1.0 - sum_of_squared_erros / total_sum_of_squares(y)
+
+
+def bootstrap_sample(data):
+    """randomly samples len(data) elements with replacement"""
+    return [random.choice(data) for _ in data]
+
+
+def bootstrap_statistics(data, stats_fn, num_samples):
+    """evaluates stats_fn on num_samples"""
+    return [stats_fn(bootstrap_sample(data))
+            for _ in range(num_samples)]
 
 
 x = [[1, 49, 4, 0], [1, 41, 9, 0], [1, 40, 8, 0], [1, 25, 6, 0], [1, 21, 1, 0], [1, 21, 0, 0], [1, 19, 3, 0],

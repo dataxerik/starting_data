@@ -1,10 +1,10 @@
 import random
-from linear_algebra import dot
+from linear_algebra import dot, vector_add
 from gradient_descent import minimize_stochastic
 from linear_regression import total_sum_of_squares
 from statistics import median, standard_deviation
 from normal_distribution import normal_cdf
-
+from functools import partial
 
 def predict(x_i, beta):
     """assumes that the first element of each x_i is 1"""
@@ -67,6 +67,38 @@ def p_value(beta_hat_j, sigma_hat_j):
         #otherwise twice the probability of seeing a *smaller* value
         return 2 * normal_cdf(beta_hat_j / sigma_hat_j)
 
+def ridge_penalty(beta, alpha):
+    return alpha * dot(beta[1:], beta[1:])
+
+def squared_error_ridge(x_i, y_i, beta, alpha):
+    """estimate error plus ridge penalty on beta"""
+    return error(x_i, y_i, beta) ** 2 + ridge_penalty(beta, alpha)
+
+def ridge_penalty_gradient(beta, alpha):
+    """gradient of just the ridge penalty"""
+    return [0] + [2 * alpha * beta_j for beta_j in beta[1:]]
+
+def squared_error_ridge_gradient(x_i, y_i, beta, alpha):
+    """The gradient corresponding to the ith squared error term
+    including the ridge penalty"""
+    return vector_add(squared_error_gradient(x_i, y_i, beta),
+                      ridge_penalty_gradient(beta, alpha))
+
+
+def estimate_beta_ridge(x, y, alpha):
+    """use gradient descent to fit a ridge regression
+    with penalty alpha"""
+    beta_initial = [random.random() for x_i in x[0]]
+    return minimize_stochastic(partial(squared_error_ridge, alpha=alpha),
+                               partial(squared_error_ridge_gradient,
+                                       alpha=alpha),
+                               x, y,
+                               beta_initial,
+                               0.001)
+
+def lasso_penalty(beta, alpha):
+    return alpha * sum(abs(beta_i) for beta_i in beta[1:])
+
 x = [[1, 49, 4, 0], [1, 41, 9, 0], [1, 40, 8, 0], [1, 25, 6, 0], [1, 21, 1, 0], [1, 21, 0, 0], [1, 19, 3, 0],
      [1, 19, 0, 0], [1, 18, 9, 0], [1, 18, 8, 0], [1, 16, 4, 0], [1, 15, 3, 0], [1, 15, 0, 0], [1, 15, 2, 0],
      [1, 15, 7, 0], [1, 14, 0, 0], [1, 14, 1, 0], [1, 13, 1, 0], [1, 13, 7, 0], [1, 13, 4, 0], [1, 13, 2, 0],
@@ -122,11 +154,12 @@ far_from_100 = ([99.5 + random.random()] +
 print(len(close_to_100))
 print(len(far_from_100))
 
-print(bootstrap_statistics(close_to_100, median, 100))
-print(bootstrap_statistics(far_from_100, median, 100))
+#print(bootstrap_statistics(close_to_100, median, 100))
+#print(bootstrap_statistics(far_from_100, median, 100))
 
 
 random.seed(0)
+'''
 boostrap_betas = bootstrap_statistics(list(zip(x, daily_minutes_good)),
                                       estimate_sample_beta,
                                       100)
@@ -138,5 +171,16 @@ bootstrap_standard_errors = [
     for i in range(4)]
 
 print(bootstrap_standard_errors)
+'''
+print(p_value(30.63, 1.174))
+print(p_value(0.972, 0.079))
+print(p_value(-1.868, 0.131))
+print(p_value(0.911, 0.990))
+
+
+beta_0 = estimate_beta_ridge(x, daily_minutes_good, alpha=0.0)
+print(beta_0)
+print(dot(beta_0[1:], beta_0[1:]))
+print(multiple_r_squared(x, daily_minutes_good, beta_0))
 
 print("end")

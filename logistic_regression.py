@@ -42,7 +42,7 @@ def logistic_log_graident_i(x_i, y_i, beta):
 
 def logistic_log_gradient(x, y, beta):
     return reduce(vector_add,
-                  [logistic_log_graident_i(x, y, beta)
+                  [logistic_log_graident_i(x_i, y_i, beta)
                   for x_i, y_i in zip(x,y)])
 
 data = [(0.7, 48000, 1), (1.9, 48000, 0), (2.5, 60000, 1), (4.2, 63000, 0), (6, 76000, 0), (6.5, 69000, 0),
@@ -89,9 +89,9 @@ beta = estimate_beta(rescaled_x, y)
 print(beta)
 predictions = [predict(x_i, beta) for x_i in rescaled_x]
 print(predictions)
-plt.scatter(predictions, y)
-plt.xlabel("predicted")
-plt.ylabel("actual")
+#plt.scatter(predictions, y)
+#plt.xlabel("predicted")
+#plt.ylabel("actual")
 #plt.show()
 
 random.seed(0)
@@ -107,3 +107,30 @@ beta_0 = [random.random() for _ in range(3)]
 beta_hat = maximize_batch(fn, gradient_fn, beta_0)
 
 print(beta_hat)
+
+true_positive = false_positive = true_negative = false_negative = 0
+
+for x_i, y_i in zip(x_test, y_test):
+    predict = logistic(dot(beta_hat, x_i))
+
+    if y_i == 1 and predict >= 0.5:
+        true_positive += 1
+    elif y_i == 1:
+        false_negative += 1
+    elif predict >= 0.5:
+        false_positive += 1
+    else:
+        true_negative += 1
+
+precision = true_positive / (true_positive + false_positive)
+recall = true_positive / (true_positive + false_negative)
+
+print(precision)
+print(recall)
+
+predictions = [logistic(dot(beta_hat, x_i)) for x_i in x_test]
+plt.scatter(predictions, y_test)
+plt.xlabel("Predicted Probability")
+plt.ylabel("Acutal Outcome")
+plt.title("Logistic Regression Predicted vs. Acutal")
+plt.show()

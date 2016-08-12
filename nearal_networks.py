@@ -48,7 +48,7 @@ def backpropagate(network, input_vector, targets):
     output_deltas = [output * (1 - output) * (output - target)
                      for output, target in zip(outputs, targets)]
 
-    # adjust weieghts for output layer, one neuron at a time
+    # adjust weights for output layer, one neuron at a time
     for i, outputs_neuron in enumerate(network[-1]):
         # focus on the ith output layer neuron
         for j, hidden_outputs in enumerate(hidden_outputs + [1]):

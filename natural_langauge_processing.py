@@ -37,23 +37,24 @@ def fix_unicode(text):
 
 
 def get_documents():
-    url = "https://www.oreilly.com/ideas/what-is-data-science"
-    html = requests.get(url)
+    url = "http://radar.oreilly.com/2010/06/what-is-data-science.html"
+    html = requests.get(url).text
     soup = BeautifulSoup(html, 'html5lib')
 
-    content = soup.find("div", "entry-content")
+    content = soup.find("div", "article-body")
     regex = r"[\w']+|[\.]"
 
     document = []
 
     for paragraph in content("p"):
-        words = re.findall((regex, fix_unicode(paragraph.text)))
+        words = re.findall(regex, fix_unicode(paragraph.text))
         document.extend(words)
 
     return document
 
+
 def generate_using_bigrams(transitions):
-    current = "." # this means the next word starts a sentence
+    current = "."  # this means the next word starts a sentence
     result = []
     while True:
         next_world_candidates = transitions[current]
@@ -61,9 +62,10 @@ def generate_using_bigrams(transitions):
         result.append(current)
         if current == ".": return " ".join(result)
 
+
 def generate_using_trigrams(starts, trigram_transition):
-    current = random.choice(starts) # choose a random starting word
-    prev = "."                      # and precede it with a '.'
+    current = random.choice(starts)  # choose a random starting word
+    prev = "."  # and precede it with a '.'
     result = [current]
     while True:
         next_word_candidates = trigram_transition[(prev, current)]
@@ -75,6 +77,25 @@ def generate_using_trigrams(starts, trigram_transition):
         if current == ".":
             return " ".join(result)
 
+
+def is_terminal(token):
+    return token[0] != "_"
+
+
+def expand(grammar, tokens):
+    for i, token in enumerate(tokens):
+
+        # ignore  terminals
+        if is_terminal(token):
+            continue
+
+        # choose a replacement at random
+        replacement = random.choice(grammar[token])
+
+        if is_terminal(replacement):
+            tokens[i] = replacement
+        else:
+            tokens = tokens[:i] + replacement.split() + tokens[(i + 1):]
 
 
 if __name__ == '__main__':
@@ -106,6 +127,3 @@ if __name__ == '__main__':
     for i in range(10):
         print(i, generate_using_trigrams(starts, trigrams_transitions))
     print()
-
-
-

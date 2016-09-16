@@ -88,7 +88,6 @@ def expand(grammar, tokens):
         # ignore  terminals
         if is_terminal(token):
             continue
-
         # choose a replacement at random
         replacement = random.choice(grammar[token])
 
@@ -96,12 +95,58 @@ def expand(grammar, tokens):
             tokens[i] = replacement
         else:
             tokens = tokens[:i] + replacement.split() + tokens[(i + 1):]
+        return expand(grammar, tokens)
+    return tokens
 
+
+def generate_sentence(grammar):
+    return expand(grammar, ["_S"])
+
+
+def roll_a_die():
+    return random.choice([1, 2, 3, 4, 5, 6])
+
+
+def direct_sample():
+    d1 = roll_a_die()
+    d2 = roll_a_die()
+    return d1, d1 + d2
+
+
+def random_y_given_x(x):
+    # equally likey to be x + 1, x +2, ... , x + 6
+    return x + roll_a_die()
+
+
+def random_x_given_y(y):
+    if y <= 7:
+        # if the total is 7 or less, the first die is equally likely to be
+        # 1, 2, ..., (total - 1_
+        return random.randrange(1, y)
+    else:
+        # if the total is 7 or more, the first die is equally likely to be
+        # (total - 6), (total - 5), ..., 6
+        return random.randrange(y - 6, 7)
+
+
+def gibbs_sample(num_iters=100):
+    x, y = 1, 2  # doesn't really matter
+    for _ in range(num_iters):
+        x = random_x_given_y(y)
+        y = random_y_given_x(x)
+    return x, y
+
+
+def compare_distribution(num_samples=1000):
+    counts = defaultdict(lambda: [0, 0])
+    for _ in range(num_samples):
+        counts[gibbs_sample()][0] += 1
+        counts[direct_sample()][0] += 1
+    return counts
 
 if __name__ == '__main__':
     # plot_resumes()
     document = get_documents()
-
     bigrams = list(zip(document, document[1:]))
     transitions = defaultdict(list)
     for prev, current in bigrams:
@@ -127,3 +172,25 @@ if __name__ == '__main__':
     for i in range(10):
         print(i, generate_using_trigrams(starts, trigrams_transitions))
     print()
+
+    grammar = {
+            "_S": ["_NP _VP"],
+            "_NP": ["_N",
+                    "_A _NP _P _A _N"],
+            "_VP": ["_V",
+                    "_V _NP"],
+            "_N": ["data science", "Python", "regression"],
+            "_A": ["big", "linear", "logistic"],
+            "_P": ["about", "near"],
+            "_V": ["learns", "trains", "tests", "is"]
+        }
+
+    print("grammar sentences")
+    for i in range(10):
+        print(i, " ".join(generate_sentence(grammar)))
+    print()
+
+    print("gibbs sampling")
+    comparsion = compare_distribution()
+    for roll, (gibbs, direct) in comparsion.items():
+        print(roll, gibbs, direct)

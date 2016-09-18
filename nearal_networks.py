@@ -1,4 +1,7 @@
 import math
+import random
+import matplotlib
+import matplotlib.pyplot as plt
 from linear_algebra import dot
 
 
@@ -41,17 +44,186 @@ def feed_forward(neural_network, input_vector):
     return outputs
 
 
-def backpropagate(network, input_vector, targets):
+def backpropagate(network, input_vector, target):
     hidden_outputs, outputs = feed_forward(network, input_vector)
 
     # the output * (1 - output) is from the derivative of sigmoid
-    output_deltas = [output * (1 - output) * (output - target)
-                     for output, target in zip(outputs, targets)]
+    output_deltas = [output * (1 - output) * (output - target[i])
+                     for i, output in enumerate(outputs)]
 
     # adjust weights for output layer, one neuron at a time
     for i, outputs_neuron in enumerate(network[-1]):
         # focus on the ith output layer neuron
-        for j, hidden_outputs in enumerate(hidden_outputs + [1]):
+        for j, hidden_output in enumerate(hidden_outputs + [1]):
             # adjust the jth weight based on both
             # this neuron's delta and its jth output
-            outputs_neuron[j] -= output_deltas[i] * hidden_outputs
+            outputs_neuron[j] -= output_deltas[i] * hidden_output
+
+    # back-propagate errors to hidden layer
+    hidden_deltas = [hidden_output * (1 - hidden_output) *
+                     dot(output_deltas, [n[i] for n in network[-1]])
+                     for i, hidden_output in enumerate(hidden_outputs)]
+
+    # adjust weights for hidden layer (network[0])
+    for i, hidden_neuron in enumerate(network[0]):
+        for j, input in enumerate(input_vector + [1]):
+            hidden_neuron[j] -= hidden_deltas[i] * input
+
+def patch(x, y, hatch, color):
+    """return a matplotlib 'patch' object with the specified
+    location, crosshatch pattern, and color"""
+    return matplotlib.patches.Recentagle((x - 0.5, y - 0.5), 1, 1,
+                                         hatch=hatch, fill=False, color=color)
+
+def show_weights(neuron_idx):
+    weights = network[0][neuron_idx]
+    abs_weights = [abs(weight) for weight in weights]
+
+    grid = [abs_weights[row:(row+5)]
+            for row in range(0,25,5)] #turn the weights into 5x5 grid
+
+    ax = plt.gca() # to use hatching, we'll need the axis
+
+    ax.imshow(grid, # here same as plt.imshow
+              cmap=matplotlib.cm.binary, # use white-black color scale
+              interpolation='none') # plt block as blocks
+
+    # cross-hatch the negative weights
+    for i in range(5): # row
+        for j in range(5): # column
+            if weights[5*i + j] < 0: # row i, column j = weight[5*i + j]
+                # add black and white hatches, so visible whether dark or light
+                ax.add_patch(j, i, '/', 'white')
+                ax.add_patch(j, i, '\\', 'black')
+    plt.show()
+
+
+if __name__ == "__main__":
+
+
+
+    raw_digits = [
+        """11111
+           1...1
+           1...1
+           1...1
+           11111""",
+
+        """..1..
+           ..1..
+           ..1..
+           ..1..
+           ..1..""",
+
+        """11111
+           ....1
+           11111
+           1....
+           11111""",
+
+        """11111
+           ....1
+           11111
+           ....1
+           11111""",
+
+        """1...1
+           1...1
+           11111
+           ....1
+           ....1""",
+
+        """11111
+           1....
+           11111
+           ....1
+           11111""",
+
+        """11111
+           1....
+           11111
+           1...1
+           11111""",
+
+        """11111
+           ....1
+           ....1
+           ....1
+           ....1""",
+
+        """11111
+           1...1
+           11111
+           1...1
+           11111""",
+
+        """11111
+           1...1
+           11111
+           ....1
+           11111"""]
+
+    def make_digit(raw_digit):
+        return [1 if c == '1' else 0
+                for row in raw_digit.split("\n")
+                for c in row.strip()]
+
+    inputs = list(map(make_digit, raw_digits))
+
+    targets = [[1 if i == j else 0 for i in range(10)]
+               for j in range(10)]
+
+    random.seed(0)
+    input_size = 25 # each input is a vector of length 25
+    num_hidden = 5 # we'll have 5 neurons in the hidden layer
+    output_size = 10 # we need 10 outputs for each input
+
+    # each hidden neuron has one weight per input, plus a bias weight
+    hidden_layer = [[random.random() for _ in range(input_size + 1)]
+                    for _ in range(num_hidden)]
+
+    # each input neuron has one weight per hidden neuron, plus a bias weight
+    output_layer = [[random.random() for _ in range(num_hidden + 1)]
+                    for _ in range(output_size)]
+
+    # the network starts out with random weights
+    network = [hidden_layer, output_layer]
+
+    show_weights(0)
+    # 10,000 iterations seems enough to converge
+    for _ in range(10000):
+        for input_vector, target_vector in zip(inputs, targets):
+            backpropagate(network, input_vector, target_vector)
+
+    def predict(input):
+        return feed_forward(network, input)[-1]
+
+    for i, input in enumerate(inputs):
+        outputs = predict(input)
+        print(i, [round(p, 2) for p in outputs])
+
+    print(""".@@@.
+    ...@@
+    ..@@.
+    ...@@
+    .@@@.""")
+    print([round(x, 2) for x in
+               predict([0, 1, 1, 1, 0,  # .@@@.
+                        0, 0, 0, 1, 1,  # ...@@
+                        0, 0, 1, 1, 0,  # ..@@.
+                        0, 0, 0, 1, 1,  # ...@@
+                        0, 1, 1, 1, 0])])  # .@@@.
+    print()
+
+    print(""".@@@.
+    @..@@
+    .@@@.
+    @..@@
+    .@@@.""")
+    print([round(x, 2) for x in
+               predict([0, 1, 1, 1, 0,  # .@@@.
+                        1, 0, 0, 1, 1,  # @..@@
+                        0, 1, 1, 1, 0,  # .@@@.
+                        1, 0, 0, 1, 1,  # @..@@
+                        0, 1, 1, 1, 0])])  # .@@@.
+    print()
